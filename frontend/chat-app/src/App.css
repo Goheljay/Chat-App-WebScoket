@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #fff;
+  --secondary-color: #000;
+  --margin-top-left: 20rem;
+}
+
+header,
+footer {
+  box-shadow: 3px 5px 5px rgba(0, 0, 0, 0.3);
+  height: 100vh;
+  margin-bottom: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+footer {
+  margin-top: 50px;
+  box-shadow: -3px -5px 5px rgba(0, 0, 0, 0.3);
+}
+
+main {
+  box-shadow: 3px 5px 5px rgba(0, 0, 0, 0.3), -3px -5px 5px rgba(0, 0, 0, 0.3);
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 50px;
+  gap: 50px;
+  overflow: hidden;
+}
+
+main div {
+  flex: 1;
+  height: 80%;
+  border: 2px solid #999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 10px;
+  transition: all 1s ease-in;
+}
+
+main div:first-child {
+  transform: translateX(-150%);
+  opacity: 0;
+}
+main div:last-child {
+  transform: translateX(150%);
+  opacity: 0;
+}
+
+.slide-in {
+  transform: translateX(0) !important;
+  opacity: 1 !important;
+}
+
+/**********************************************************************************/
+/* App.css */
+
+/* Styling for container */
+.container {
+  display: flex;
+  justify-content: center;
+}
+
+/* Styling for heading */
+/*h1 {*/
+/*    text-align: center;*/
+/*}*/
+
+
+/* Styling for Boxes */
+.box {
+  border: 2px solid #333;
+  padding: 10px;
+  margin: 10px;
+  width: 250px;
+  height: 300px;
+}
+
+/* Styling for List Items */
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 8px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+li:hover {
+  background-color: #e0e0e0;
+}
