@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const verifyToken = require("./middleware/authentication")
 const { connectDB } = require("./config/mongo.config"); // Import DB connection
+const redisClient = require("./config/redis.config");  // Redis connection
+
 
 const app = express();
 const port = 3001;
@@ -34,3 +36,6 @@ app.use("", require("./routes/index"));
 app.listen(port, () => {
   console.log(`Server listening on ${port} port`);
 });
+
+redisClient.connect().catch((err) => console.error("❌ Redis Connection Failed:", err));
+

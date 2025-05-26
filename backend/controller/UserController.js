@@ -3,32 +3,67 @@ const Conversation = require("../schema/conversation.schema");
 const Message = require("../schema/message.schema");
 const axios = require("axios");
 const { notifyChatToSocket } = require("../thirdParty-api/socket.api");
+const { getAsync, setAsync, delAsync, CACHE_TTL } = require('../services/redis.service')
 
 class UserController {
   async getAllRegisteredUser(req, res) {
     try {
-      const { userId } = req.body; // Assume userId is sent in request body
+      const { userId } = req;
 
       if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
+        return res.status(400).json({ message: 'User ID is required' })
       }
 
-      // Get the user's friends list
-      const user = await Users.findById(userId).select("friends");
+      // Try to get from cache first
+      const cacheKey = `users:nonFriends:${userId}`
+      try {
+        const cachedUsers = await getAsync(cacheKey)
+        if (cachedUsers) {
+          console.log('✅ Data fetched from Redis cache')
+          return res.status(200).json({
+            message: 'Users fetched from Redis cache',
+            source: 'cache',
+            data: JSON.parse(cachedUsers)
+          })
+        }
+      } catch (cacheError) {
+        console.error('❌ Cache error:', cacheError)
+      }
+
+      console.log('🔍 Cache miss - fetching from database')
+      // Database query
+      const user = await Users.findById(userId).select('friends')
 
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(404).json({ message: 'User not found' })
       }
 
-      // Find all users who are NOT in the friends list
       const allUsers = await Users.find({
-        _id: { $ne: userId, $nin: user.friends } // Exclude current user & friends
-      }).select("username email profilePic");
+        _id: { $ne: userId, $nin: user.friends }
+      }).select('username email profilePic')
 
-      res.status(200).json({ message: "Users fetched successfully", data: allUsers });
+      // Try to store in cache
+      try {
+        await setAsync(
+          cacheKey,
+          JSON.stringify(allUsers)
+        )
+        console.log('✅ Data stored in Redis cache')
+      } catch (cacheError) {
+        console.error('❌ Cache storage error:', cacheError)
+      }
+
+      res.status(200).json({
+        message: 'Users fetched from database',
+        source: 'database',
+        data: allUsers
+      })
     } catch (error) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Something went wrong!", error: error.message });
+      console.error('Error fetching users:', error)
+      res.status(500).json({
+        message: 'Something went wrong!',
+        error: error.message
+      })
     }
   }
 
@@ -153,21 +188,27 @@ class UserController {
           content: message,
         });
 
-        let newVar = await newMessage.save();
-        console.log(userId);
-        const token = req.header("Authorization");
-        console.log(newVar);
+        let savedMessage = await newMessage.save();
+
+        // Invalidate messages cache for both users
+        const cacheKey1 = `messages:${req.userId}:${userId}`
+        const cacheKey2 = `messages:${userId}:${req.userId}`
+        await Promise.all([
+          delAsync(cacheKey1),
+          delAsync(cacheKey2)
+        ])
+
         // Notify socket server
         notifyChatToSocket(
           {
-            chatId: newVar.chatId,
-            senderId: newVar.sender,
+            chatId: savedMessage.chatId,
+            senderId: savedMessage.sender,
             receiverId: recevierUserId._id,
-            message: newVar.content,
-            messageType: newVar.messageType,
-            fileUrl: newVar.fileUrl,
+            message: savedMessage.content,
+            messageType: savedMessage.messageType,
+            fileUrl: savedMessage.fileUrl,
           },
-          token,
+          req.header("Authorization"),
         )
           .then((response) => {
             console.log("Notified Successfully");
@@ -177,7 +218,7 @@ class UserController {
               .status(500)
               .json({ message: "Failed to socket", data: error });
           });
-        return res.status(200).json({ message: "Chat sent", data: newVar });
+        return res.status(200).json({ message: "Chat sent", data: savedMessage });
       }
       res.status(500).json({ message: "Something went Wrong! " });
     } catch (error) {
@@ -189,22 +230,55 @@ class UserController {
     try {
       const { userId } = req.body;
 
+      // Try to get messages from cache
+      const cacheKey = `messages:${req.userId}:${userId}`
+      try {
+        const cachedMessages = await getAsync(cacheKey)
+        if (cachedMessages) {
+          console.log('✅ Messages fetched from Redis cache')
+          return res.status(200).json({
+            message: 'Messages fetched from Redis cache',
+            source: 'cache',
+            data: JSON.parse(cachedMessages)
+          })
+        }
+      } catch (cacheError) {
+        console.error('❌ Cache error:', cacheError)
+      }
+
+      console.log('🔍 Cache miss - fetching messages from database')
+      // If not in cache, get from database
       let existingChat = await Conversation.findOne({
         isGroupChat: false,
         participants: { $all: [userId, req.userId] },
-      });
+      })
 
       let allMessages = await Message.find({
         chatId: existingChat._id,
-      });
-      console.log(allMessages);
+      })
 
-      return res
-        .status(200)
-        .json({ message: "All message Get Successfully", data: allMessages });
+      // Store in cache
+      try {
+        await setAsync(
+          cacheKey,
+          JSON.stringify(allMessages)
+        )
+        console.log('✅ Messages stored in Redis cache')
+      } catch (cacheError) {
+        console.error('❌ Cache storage error:', cacheError)
+      }
+
+      return res.status(200).json({
+        message: 'Messages fetched from database',
+        source: 'database',
+        data: allMessages
+      })
     } catch (error) {
-      console.log(error);
-      res.status(500).json({ message: "Something went Wrong! ", error: error });
+      console.error('Error fetching messages:', error)
+      res.status(500).json({
+        message: 'Something went wrong!',
+        error: error.message
+      })
     }
   }
 }
