@@ -1,0 +1,38 @@
+version: '3'
+services:
+  backend:
+    build: .
+    image: chat-backend-app
+    ports: 
+      - 8080:3001
+    environment:
+      - MONGO_DB_HOST=compose_mongodb_container_1
+      - MONGO_PORT=27017
+      - MONGO_DB_PASSWORD=rootpassword
+      - MONGO_DB_USER=root
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+  # mongo:
+  #   image: mongo:4.4.6
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: root
+  #     MONGO_INITDB_ROOT_PASSWORD: rootpassword
+  #   ports:
+  #     - 27017:27017
+  #   volumes:
+  #     - mongo-data:/data/db
+  #   restart: unless-stopped
+  redis:
+    image: redis:7
+    ports:
+      - '6379:6379'
+    
+volumes:
+  mongo-data:
+
+
+# if you want to exisitng container use network and comment the original mongo configration
+networks:
+  default:
+    external:
+      name: compose_default 

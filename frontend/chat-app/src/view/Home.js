@@ -11,7 +11,7 @@ import localStorageUtil from "../utils/localstorage";
 import NewUsers from "../component/NewUsers";
 import { createPortal } from "react-dom";
 
-const socket = io("http://localhost:4000"); // Replace with your backend URL
+const socket = io("http://localhost:8081"); // Replace with your backend URL
 function Home() {
   const [currentChat, setCurrentChat] = useState(null);
   const [currentMessage, setCurrentMessage] = useState("");

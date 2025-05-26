@@ -1,8 +1,6 @@
-const Redis = require('redis')
-const { promisify } = require('util')
+const { promisify } = require('util');
+const redisClient = require('../config/redis.config');
 
-// Create Redis client
-const redisClient = Redis.createClient()
 
 // Connect to Redis
 const connectRedis = async () => {
@@ -24,7 +22,7 @@ redisClient.on('error', err => {
 
 redisClient.on('end', () => {
   console.log('Redis connection ended - attempting to reconnect...')
-  connectRedis()
+  redisClient = redisClient();
 })
 
 // Cache expiration times (in seconds)

@@ -4,7 +4,7 @@ import { getAuthToken, setCookieWithAttributes } from "../utils/cookies";
 const axiosIns = axios.create({
   // You can add your headers here
   // ================================
-  baseURL: "http://localhost:3001",
+  baseURL: "http://localhost:8080",
   // timeout: 1000,
   // headers: {'X-Custom-Header': 'foobar'},
   /*For axios 0.27.2*/

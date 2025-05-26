@@ -1,29 +1,29 @@
-const Redis = require('redis')
+const redisClient = require('../config/redis.config')
 
 // Create Redis client
-const redisClient = Redis.createClient()
+const redisObject = redisClient();
 
 // Connect to Redis
-const connectRedis = async () => {
-  try {
-    await redisClient.connect()
-    console.log('Redis Client Connected')
-  } catch (err) {
-    console.error('Redis Connection Error:', err)
-  }
-}
+// const connectRedis = async () => {
+//   try {
+//     await redisClient.connect()
+//     console.log('Redis Client Connected')
+//   } catch (err) {
+//     console.error('Redis Connection Error:', err)
+//   }
+// }
 
-// Initialize connection
-connectRedis()
+// // Initialize connection
+// connectRedis()
 
-// Handle errors and reconnection
-redisClient.on('error', err => {
-  console.error('Redis Client Error:', err)
-})
+// // Handle errors and reconnection
+// redisClient.on('error', err => {
+//   console.error('Redis Client Error:', err)
+// })
 
-redisClient.on('end', () => {
+redisObject.on('end', () => {
   console.log('Redis connection ended - attempting to reconnect...')
-  connectRedis()
+  redisObject = redisClient()
 })
 
 // Cache expiration times (in seconds)
@@ -38,10 +38,10 @@ const cacheMiddleware = {
   // Get data from cache
   getCache: async (key) => {
     try {
-      if (!redisClient.isOpen) {
+      if (!redisObject.isOpen) {
         await connectRedis()
       }
-      return await redisClient.get(key)
+      return await redisObject.get(key)
     } catch (err) {
       console.error('Redis GET Error:', err)
       return null
@@ -51,10 +51,10 @@ const cacheMiddleware = {
   // Set data in cache
   setCache: async (key, value, type = 'USERS') => {
     try {
-      if (!redisClient.isOpen) {
+      if (!redisObject.isOpen) {
         await connectRedis()
       }
-      return await redisClient.set(key, value, {
+      return await redisObject.set(key, value, {
         EX: CACHE_TTL[type] // This sets expiration in seconds
       })
     } catch (err) {
@@ -66,10 +66,10 @@ const cacheMiddleware = {
   // Delete data from cache
   deleteCache: async (key) => {
     try {
-      if (!redisClient.isOpen) {
+      if (!redisObject.isOpen) {
         await connectRedis()
       }
-      return await redisClient.del(key)
+      return await redisObject.del(key)
     } catch (err) {
       console.error('Redis DEL Error:', err)
       return null
@@ -79,10 +79,10 @@ const cacheMiddleware = {
   // Clear all cache
   clearCache: async () => {
     try {
-      if (!redisClient.isOpen) {
+      if (!redisObject.isOpen) {
         await connectRedis()
       }
-      return await redisClient.flushAll()
+      return await redisObject.flushAll()
     } catch (err) {
       console.error('Redis FLUSH Error:', err)
       return null
@@ -91,7 +91,7 @@ const cacheMiddleware = {
 }
 
 module.exports = {
-  redisClient,
+  redisObject,
   cacheMiddleware,
   CACHE_TTL
 } 
