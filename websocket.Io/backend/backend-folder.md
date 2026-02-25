@@ -1,0 +1,43 @@
+```
+└── 📁backend
+    └── 📁.idea
+        └── .gitignore
+        └── backend.iml
+        └── modules.xml
+        └── prettier.xml
+        └── vcs.xml
+        └── workspace.xml
+    └── 📁config
+        └── mongo.config.js
+        └── redis.config.js
+    └── 📁controller
+        └── AuthController.js
+        └── UserController.js
+    └── 📁middleware
+        └── authentication.js
+        └── redis.middleware.js
+    └── 📁routes
+        └── AppRoute.js
+        └── AuthenticationRoute.js
+        └── index.js
+    └── 📁schema
+        └── conversation.schema.js
+        └── message.schema.js
+        └── user.schema.js
+    └── 📁services
+        └── redis.service.js
+    └── 📁thirdParty-api
+        └── socket.api.js
+    └── 📁utils
+        └── jwt.utils.js
+    └── 📁validation
+        └── user.validate.js
+    └── .dockerignore
+    └── .env
+    └── .gitignore
+    └── docker-compose.yml
+    └── Dockerfile
+    └── package-lock.json
+    └── package.json
+    └── server.js
+```
