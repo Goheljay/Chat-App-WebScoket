@@ -1,0 +1,42 @@
+---
+description: AI Agent Council spec — design, colors, layout, architecture reference
+globs: **/AgentCouncil*,**/agent-council*,**/AGENT_COUNCIL*
+alwaysApply: false
+---
+
+# AI Agent Council — Always Follow the Spec
+
+When working on any Agent Council feature, page, or component, **always follow** the requirements in:
+`/home/dev1010/Jay/self-project/chat-app/websocket/AGENT_COUNCIL_SPEC.md`
+
+## Critical: Agent Colors (never change these)
+```
+Analyst     ⚡  GPT-4o          #e84c3d  (red)
+Researcher  🔬  Claude Opus     #3d7ee8  (blue)
+Reasoner    🧠  Gemini 1.5 Pro  #38b06f  (green)
+Critic      ⚖️  Llama 3 70B     #c9a84c  (gold)
+Synthesizer ✦   Claude Sonnet   #9b59b6  (purple)
+```
+
+## Critical: UI Rules
+- Background: `#0a0a0f` (dark ink)
+- SEND button: `#e84c3d` (accent red) — NOT green
+- Final Answer block: `border: rgba(232,76,61,0.3)`, `bg: rgba(232,76,61,0.1)` — red tint
+- Agent left-border strips: 3px solid agent color
+- Debate cards left-border: 2px solid agent color
+- Body text: dim `rgba(255,255,255,0.45)` — NOT green
+- Agent names only use their accent color; all other text is grey/white
+
+## Layout
+Three panels: `280px sidebar | flex-1 chat | 300px deliberation`
+
+Sidebar footer: phase dots (done=green, active=gold pulsing) + `DEBATE` label
+Right panel footer: consensus vote split bar + `N/5 agents aligned`
+
+## Spec File
+Always read `AGENT_COUNCIL_SPEC.md` for full details on:
+- Backend 7-layer architecture
+- Session state machine (RECEIVED → DISPATCHED → DELIBERATING → SYNTHESIZING → COMPLETE)
+- Agent JSON message contract
+- WebSocket event types
+- Key design decisions (parallel fan-out, weighted voting, streaming)

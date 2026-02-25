@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent Council — System Design</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a0a0f;
+    --paper: #f4f1eb;
+    --accent: #e84c3d;
+    --gold: #c9a84c;
+    --muted: #6b6860;
+    --border: rgba(10,10,15,0.12);
+    --agent-1: #e84c3d;
+    --agent-2: #3d7ee8;
+    --agent-3: #38b06f;
+    --agent-4: #c9a84c;
+    --agent-5: #9b59b6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    padding: 80px 60px 60px;
+    border-bottom: 2px solid var(--ink);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: 'COUNCIL';
+    position: absolute;
+    right: -20px;
+    top: 20px;
+    font-family: 'Syne', sans-serif;
+    font-size: 140px;
+    font-weight: 800;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(10,10,15,0.08);
+    letter-spacing: -4px;
+    user-select: none;
+  }
+  .hero-label {
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .hero-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 56px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -2px;
+    margin-bottom: 16px;
+  }
+  .hero-title span { color: var(--accent); }
+  .hero-sub {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--muted);
+    max-width: 500px;
+  }
+  .hero-tags {
+    display: flex;
+    gap: 8px;
+    margin-top: 30px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    padding: 4px 12px;
+    border: 1.5px solid var(--ink);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .tag.red { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* ─── LAYOUT GRID ─── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 2px solid var(--ink);
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 2px solid var(--ink);
+  }
+  .grid-1 {
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .panel {
+    padding: 48px 52px;
+    border-right: 2px solid var(--ink);
+  }
+  .panel:last-child { border-right: none; }
+
+  .panel-label {
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--accent);
+    opacity: 0.3;
+  }
+
+  .panel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    line-height: 1.1;
+  }
+  .panel-body {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  /* ─── FRONTEND WIREFRAME ─── */
+  .wireframe-container {
+    padding: 48px 52px;
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .wireframe {
+    display: grid;
+    grid-template-columns: 280px 1fr 300px;
+    gap: 0;
+    border: 1px solid rgba(255,255,255,0.15);
+    height: 520px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+  }
+
+  /* Sidebar */
+  .wf-sidebar {
+    border-right: 1px solid rgba(255,255,255,0.12);
+    display: flex;
+    flex-direction: column;
+  }
+  .wf-sidebar-header {
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #38b06f;
+    box-shadow: 0 0 6px #38b06f;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+  .wf-agents {
+    flex: 1;
+    padding: 12px;
+    overflow: hidden;
+  }
+  .agent-item {
+    padding: 10px 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 6px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .agent-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+  .agent-item.a1::before { background: var(--agent-1); }
+  .agent-item.a2::before { background: var(--agent-2); }
+  .agent-item.a3::before { background: var(--agent-3); }
+  .agent-item.a4::before { background: var(--agent-4); }
+  .agent-item.a5::before { background: var(--agent-5); }
+  .agent-item.active { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); }
+  .agent-name { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.9); margin-bottom: 2px; }
+  .agent-role { font-size: 9px; color: rgba(255,255,255,0.4); letter-spacing: 1px; text-transform: uppercase; }
+  .agent-thinking {
+    font-size: 9px;
+    color: rgba(255,255,255,0.3);
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  .wf-sidebar-footer {
+    padding: 12px;
+    border-top: 1px solid rgba(255,255,255,0.12);
+  }
+  .phase-indicator {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .phase-dot {
+    width: 20px; height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.15);
+  }
+  .phase-dot.done { background: var(--agent-3); }
+  .phase-dot.active { background: var(--agent-4); animation: pulse 1.5s infinite; }
+  .phase-label { font-size: 9px; color: rgba(255,255,255,0.4); margin-left: 4px; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* Main chat area */
+  .wf-main {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255,255,255,0.12);
+  }
+  .wf-main-header {
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .wf-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; }
+  .wf-mode { font-size: 9px; color: rgba(255,255,255,0.4); letter-spacing: 2px; text-transform: uppercase; }
+
+  .wf-messages {
+    flex: 1;
+    padding: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .msg-user {
+    align-self: flex-end;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 10px 14px;
+    max-width: 70%;
+    font-size: 11px;
+    color: rgba(255,255,255,0.85);
+    border-radius: 2px 2px 0 2px;
+  }
+
+  .msg-council {
+    align-self: flex-start;
+    max-width: 80%;
+  }
+  .msg-council-header {
+    font-size: 9px;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .msg-council-body {
+    background: rgba(232,76,61,0.1);
+    border: 1px solid rgba(232,76,61,0.3);
+    padding: 12px 14px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.85);
+    border-radius: 0 2px 2px 2px;
+    line-height: 1.7;
+  }
+
+  .msg-internal {
+    align-self: flex-start;
+    max-width: 75%;
+  }
+  .msg-internal-tag {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .msg-internal-tag .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .msg-internal-body {
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 8px 12px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.45);
+    border-radius: 2px;
+    font-style: italic;
+  }
+
+  .wf-input-area {
+    padding: 14px 18px;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .wf-input {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 10px 14px;
+    color: rgba(255,255,255,0.7);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    outline: none;
+    border-radius: 2px;
+  }
+  .wf-send {
+    padding: 10px 18px;
+    background: var(--accent);
+    border: none;
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+
+  /* Right panel — council deliberation */
+  .wf-right {
+    display: flex;
+    flex-direction: column;
+    background: rgba(0,0,0,0.2);
+  }
+  .wf-right-header {
+    padding: 16px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+  .debate-feed {
+    flex: 1;
+    padding: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .debate-card {
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 8px 10px;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .debate-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+  }
+  .debate-card.a1::before { background: var(--agent-1); }
+  .debate-card.a2::before { background: var(--agent-2); }
+  .debate-card.a3::before { background: var(--agent-3); }
+  .debate-card.a4::before { background: var(--agent-4); }
+  .debate-card.a5::before { background: var(--agent-5); }
+  .debate-agent { font-size: 9px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+  .debate-text { font-size: 10px; color: rgba(255,255,255,0.6); line-height: 1.5; }
+  .debate-meta { font-size: 9px; color: rgba(255,255,255,0.25); margin-top: 4px; }
+
+  .wf-right-footer {
+    padding: 12px;
+    border-top: 1px solid rgba(255,255,255,0.12);
+  }
+  .vote-row {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .vote-bar {
+    height: 20px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    font-size: 9px;
+    color: rgba(255,255,255,0.8);
+    font-weight: 500;
+  }
+  .consensus-label { font-size: 9px; color: rgba(255,255,255,0.3); letter-spacing: 1px; text-transform: uppercase; text-align: center; }
+
+  /* ─── ARCHITECTURE DIAGRAM ─── */
+  .arch-container {
+    padding: 52px;
+    background: var(--paper);
+  }
+
+  .arch-section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .arch-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 52px;
+  }
+
+  .flow-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .flow-box {
+    background: white;
+    border: 1.5px solid var(--ink);
+    padding: 20px 24px;
+    flex: 1;
+    position: relative;
+  }
+  .flow-box.accent-box { background: var(--ink); color: var(--paper); }
+  .flow-box.accent-box .box-label { color: rgba(244,241,235,0.5); }
+  .flow-box.red-box { background: var(--accent); color: white; }
+  .flow-box.red-box .box-label { color: rgba(255,255,255,0.7); }
+
+  .box-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .box-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    line-height: 1.1;
+  }
+  .box-detail {
+    font-size: 10px;
+    color: inherit;
+    opacity: 0.6;
+    line-height: 1.6;
+  }
+
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    flex-shrink: 0;
+    font-size: 20px;
+    color: var(--muted);
+    position: relative;
+  }
+  .flow-arrow.down {
+    width: 100%;
+    height: 40px;
+    justify-content: center;
+  }
+  .flow-arrow.down::before {
+    content: '';
+    position: absolute;
+    left: 50%; top: 0; bottom: 0;
+    width: 1.5px;
+    background: var(--ink);
+    transform: translateX(-50%);
+  }
+  .flow-arrow.down::after {
+    content: '↓';
+    position: absolute;
+    bottom: 0;
+    font-size: 16px;
+    background: var(--paper);
+    padding: 0 4px;
+    color: var(--ink);
+  }
+
+  /* Council ring */
+  .council-ring {
+    position: relative;
+    height: 380px;
+    margin: 32px 0 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ring-center {
+    position: absolute;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+    z-index: 10;
+    border: 3px solid var(--gold);
+  }
+  .ring-center-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .ring-center-sub { font-size: 8px; color: rgba(255,255,255,0.4); letter-spacing: 1px; text-transform: uppercase; margin-top: 3px; }
+
+  .agent-node {
+    position: absolute;
+    width: 110px;
+    padding: 12px;
+    background: white;
+    border: 1.5px solid var(--ink);
+    text-align: center;
+  }
+  .agent-node-icon { font-size: 22px; margin-bottom: 4px; }
+  .agent-node-name { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; }
+  .agent-node-role { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+  .agent-node-model { font-size: 9px; color: var(--accent); margin-top: 4px; }
+
+  /* Position nodes in a circle */
+  .agent-node.n1 { top: 10px; left: 50%; transform: translateX(-50%); }
+  .agent-node.n2 { top: 50%; right: 40px; transform: translateY(-50%); }
+  .agent-node.n3 { bottom: 10px; right: 18%; }
+  .agent-node.n4 { bottom: 10px; left: 18%; }
+  .agent-node.n5 { top: 50%; left: 40px; transform: translateY(-50%); }
+
+  /* SVG connections */
+  .ring-svg { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; }
+
+  /* Layer architecture */
+  .layers {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1.5px solid var(--ink);
+    margin-bottom: 52px;
+    overflow: hidden;
+  }
+  .layer {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .layer:last-child { border-bottom: none; }
+  .layer-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    color: rgba(10,10,15,0.08);
+    width: 50px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .layer-content { flex: 1; }
+  .layer-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .layer-detail { font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .layer-tech {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .tech-chip {
+    padding: 2px 8px;
+    background: rgba(10,10,15,0.06);
+    border: 1px solid var(--border);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .layer-icon { font-size: 32px; flex-shrink: 0; opacity: 0.7; }
+
+  /* States */
+  .states-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    border: 1.5px solid var(--ink);
+    margin-bottom: 52px;
+    overflow: hidden;
+  }
+  .state-item {
+    padding: 20px;
+    border-right: 1px solid var(--border);
+    text-align: center;
+  }
+  .state-item:last-child { border-right: none; }
+  .state-icon { font-size: 28px; margin-bottom: 8px; }
+  .state-name { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+  .state-desc { font-size: 10px; color: var(--muted); line-height: 1.5; }
+  .state-time { font-size: 9px; color: var(--accent); margin-top: 6px; letter-spacing: 1px; }
+
+  /* Data flow table */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1.5px solid var(--ink);
+    margin-bottom: 52px;
+  }
+  .data-table th {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 400;
+    border-right: 1px solid rgba(255,255,255,0.1);
+  }
+  .data-table td {
+    padding: 12px 16px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    vertical-align: top;
+    line-height: 1.6;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table td:last-child { border-right: none; }
+  .data-table td code {
+    background: rgba(10,10,15,0.06);
+    padding: 1px 6px;
+    font-size: 10px;
+  }
+
+  /* Config callouts */
+  .callout-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    border: 1.5px solid var(--ink);
+  }
+  .callout {
+    padding: 28px 30px;
+    border-right: 1px solid var(--ink);
+  }
+  .callout:last-child { border-right: none; }
+  .callout-icon { font-size: 36px; margin-bottom: 16px; }
+  .callout-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .callout-body { font-size: 11px; color: var(--muted); line-height: 1.8; }
+  .callout-body strong { color: var(--ink); font-weight: 500; }
+
+  /* Footer */
+  .footer {
+    background: var(--ink);
+    color: rgba(244,241,235,0.4);
+    padding: 32px 52px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .footer-brand { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800; color: var(--paper); letter-spacing: 0; text-transform: none; }
+
+  /* Separator */
+  .sep {
+    height: 2px;
+    background: var(--ink);
+  }
+
+  /* Annotation */
+  .annotation {
+    font-size: 10px;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 8px;
+  }
+
+  .num-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px; height: 20px;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+<section class="hero">
+  <div class="hero-label">System Design Document · v1.0</div>
+  <div class="hero-title">AI Agent<br><span>Council</span></div>
+  <div class="hero-sub">Multi-LLM deliberation architecture — internal debate, consensus synthesis, final answer delivery.</div>
+  <div class="hero-tags">
+    <span class="tag red">Architecture</span>
+    <span class="tag">Frontend UX</span>
+    <span class="tag">Backend Flow</span>
+    <span class="tag">Agent Orchestration</span>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SECTION 1: CONCEPT ═══════════════════════════ -->
+<div class="grid-3">
+  <div class="panel">
+    <div class="panel-label">01 · Concept</div>
+    <div class="panel-title">What is the Council?</div>
+    <div class="panel-body">Multiple specialized LLM agents receive the same user query, each analyzing it through their own lens. They internally debate, critique each other's reasoning, vote on confidence, then a Synthesizer agent produces one fine-tuned final answer — the best of all minds combined.</div>
+  </div>
+  <div class="panel">
+    <div class="panel-label">02 · Why Multi-Agent</div>
+    <div class="panel-title">Better than single LLM</div>
+    <div class="panel-body">Single LLMs have blind spots, biases, and hallucination risks. The Council model catches errors through inter-agent critique, brings diverse reasoning strategies to a problem, and produces answers with measurable internal confidence before responding to the user.</div>
+  </div>
+  <div class="panel">
+    <div class="panel-label">03 · Core Loop</div>
+    <div class="panel-title">Dispatch → Deliberate → Synthesize</div>
+    <div class="panel-body">User query enters the Orchestrator, which fans out to N agents in parallel. Agents respond, then enter a debate round where they read each other's reasoning and revise. A Synthesizer agent reads all revised outputs and produces the final answer with citations to which agents contributed most.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ SECTION 2: FRONTEND WIREFRAME ═══════════════════════════ -->
+<div class="wireframe-container">
+  <div style="color:rgba(244,241,235,0.4); font-size:10px; letter-spacing:4px; text-transform:uppercase; margin-bottom:24px;">Frontend Interface Wireframe</div>
+  <div class="wireframe">
+
+    <!-- LEFT: Agent sidebar -->
+    <div class="wf-sidebar">
+      <div class="wf-sidebar-header">
+        <div class="status-dot"></div>
+        Council · Active
+      </div>
+      <div class="wf-agents">
+        <div class="agent-item a1 active">
+          <div class="agent-name">⚡ Analyst</div>
+          <div class="agent-role">GPT-4o</div>
+          <div class="agent-thinking">↳ parsing query intent...</div>
+        </div>
+        <div class="agent-item a2">
+          <div class="agent-name">🔬 Researcher</div>
+          <div class="agent-role">Claude Opus</div>
+          <div class="agent-thinking">↳ retrieving context...</div>
+        </div>
+        <div class="agent-item a3">
+          <div class="agent-name">🧠 Reasoner</div>
+          <div class="agent-role">Gemini 1.5 Pro</div>
+          <div class="agent-thinking">↳ logic validation...</div>
+        </div>
+        <div class="agent-item a4">
+          <div class="agent-name">⚖️ Critic</div>
+          <div class="agent-role">Llama 3 70B</div>
+          <div class="agent-thinking">↳ awaiting draft...</div>
+        </div>
+        <div class="agent-item a5">
+          <div class="agent-name">✦ Synthesizer</div>
+          <div class="agent-role">Claude Sonnet</div>
+          <div class="agent-thinking">↳ standby</div>
+        </div>
+      </div>
+      <div class="wf-sidebar-footer">
+        <div class="phase-indicator">
+          <div class="phase-dot done"></div>
+          <div class="phase-dot done"></div>
+          <div class="phase-dot active"></div>
+          <div class="phase-dot"></div>
+          <div class="phase-dot"></div>
+          <div class="phase-label">Debate</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER: Main chat -->
+    <div class="wf-main">
+      <div class="wf-main-header">
+        <div class="wf-title">Council Chat</div>
+        <div class="wf-mode">Internal Debate Visible</div>
+      </div>
+      <div class="wf-messages">
+        <div class="msg-user">What's the best investment strategy for a 30-year-old with $10k?</div>
+
+        <div class="msg-internal">
+          <div class="msg-internal-tag">
+            <div class="dot" style="background:var(--agent-1)"></div>
+            <span style="color:rgba(255,255,255,0.3);">Analyst thinking...</span>
+          </div>
+          <div class="msg-internal-body">Index funds dominate risk-adjusted returns. Evidence from Vanguard 2023 data supports low-cost passive ETFs for this profile.</div>
+        </div>
+
+        <div class="msg-internal">
+          <div class="msg-internal-tag">
+            <div class="dot" style="background:var(--agent-4)"></div>
+            <span style="color:rgba(255,255,255,0.3);">Critic challenges Analyst...</span>
+          </div>
+          <div class="msg-internal-body">Disagree with ignoring emergency fund priority. $10k shouldn't be entirely invested without 3-6mo liquid runway established first.</div>
+        </div>
+
+        <div class="msg-council">
+          <div class="msg-council-header">✦ Council Final Answer · Confidence 91%</div>
+          <div class="msg-council-body">After deliberation, the Council recommends: First, ensure 3-month emergency fund (~$3k liquid). Invest remaining $7k in a split of 70% broad market ETFs (VTI/VXUS), 20% bonds for stability, 10% speculative growth. At 30, your time horizon favors equities...</div>
+        </div>
+      </div>
+      <div class="wf-input-area">
+        <input class="wf-input" placeholder="Ask the Council..." readonly />
+        <button class="wf-send">Send</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: Debate feed -->
+    <div class="wf-right">
+      <div class="wf-right-header">Live Deliberation</div>
+      <div class="debate-feed">
+        <div class="debate-card a1">
+          <div class="debate-agent">⚡ Analyst</div>
+          <div class="debate-text">Recommending 100% ETF allocation, VOO/VTI split. Minimal bonds at 30.</div>
+          <div class="debate-meta">Round 1 · 2.1s</div>
+        </div>
+        <div class="debate-card a2">
+          <div class="debate-agent">🔬 Researcher</div>
+          <div class="debate-text">Found Vanguard research: 90/10 equity/bond optimal at this age. Agrees with Analyst but adds international exposure.</div>
+          <div class="debate-meta">Round 1 · 3.4s</div>
+        </div>
+        <div class="debate-card a4">
+          <div class="debate-agent">⚖️ Critic</div>
+          <div class="debate-text">Flagging: both ignored emergency fund prerequisite. Critical error in advice ordering.</div>
+          <div class="debate-meta">Round 2 · 1.8s</div>
+        </div>
+        <div class="debate-card a3">
+          <div class="debate-agent">🧠 Reasoner</div>
+          <div class="debate-text">Critic is correct. Revising vote. Emergency fund first is logically prior.</div>
+          <div class="debate-meta">Round 2 · 2.2s</div>
+        </div>
+      </div>
+      <div class="wf-right-footer">
+        <div style="font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Consensus Vote</div>
+        <div class="vote-row">
+          <div class="vote-bar" style="flex:0.91;background:var(--agent-3);">91%</div>
+          <div class="vote-bar" style="flex:0.09;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.3);">9%</div>
+        </div>
+        <div class="consensus-label">4/5 agents aligned · Proceeding</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════ SECTION 3: BACKEND ARCHITECTURE ═══════════════════════════ -->
+<div class="arch-container">
+
+  <div class="arch-section-title">Backend System Architecture</div>
+
+  <!-- Request flow -->
+  <div class="flow">
+    <div class="flow-row">
+      <div class="flow-box">
+        <div class="box-label">Entry Point</div>
+        <div class="box-title">User Interface</div>
+        <div class="box-detail">WebSocket connection established. Query + context + session state sent to API Gateway.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">
+        <div class="box-label">API Layer</div>
+        <div class="box-title">API Gateway</div>
+        <div class="box-detail">Rate limiting, auth, request parsing. Assigns session ID, routes to Orchestrator service.</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box accent-box">
+        <div class="box-label">Core Engine</div>
+        <div class="box-title">Orchestrator</div>
+        <div class="box-detail">The brain. Manages the full council lifecycle: dispatch, polling, debate rounds, synthesis trigger.</div>
+      </div>
+    </div>
+    <div class="flow-arrow down"></div>
+    <div class="flow-row">
+      <div class="flow-box red-box">
+        <div class="box-label">Output</div>
+        <div class="box-title">WebSocket Push to Frontend</div>
+        <div class="box-detail">Streams events in real-time: agent thoughts, debate rounds, consensus score, final answer tokens.</div>
+      </div>
+      <div class="flow-arrow">←</div>
+      <div class="flow-box">
+        <div class="box-label">Aggregation</div>
+        <div class="box-title">Synthesizer Agent</div>
+        <div class="box-detail">Reads all agent outputs + debate results. Produces weighted final answer. Attaches confidence score.</div>
+      </div>
+      <div class="flow-arrow">←</div>
+      <div class="flow-box">
+        <div class="box-label">Process</div>
+        <div class="box-title">Debate Engine</div>
+        <div class="box-detail">Agents read each other's Round 1 output and issue critiques or agreements. May trigger 2nd debate round.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Council ring diagram -->
+  <div class="arch-section-title">Council Topology — Agent Roles</div>
+  <div class="council-ring">
+    <svg class="ring-svg" viewBox="0 0 800 380">
+      <!-- Spokes from center to each node -->
+      <line x1="400" y1="190" x2="400" y2="80" stroke="#0a0a0f" stroke-width="1" stroke-dasharray="4,4" opacity="0.25"/>
+      <line x1="400" y1="190" x2="720" y2="190" stroke="#0a0a0f" stroke-width="1" stroke-dasharray="4,4" opacity="0.25"/>
+      <line x1="400" y1="190" x2="620" y2="310" stroke="#0a0a0f" stroke-width="1" stroke-dasharray="4,4" opacity="0.25"/>
+      <line x1="400" y1="190" x2="180" y2="310" stroke="#0a0a0f" stroke-width="1" stroke-dasharray="4,4" opacity="0.25"/>
+      <line x1="400" y1="190" x2="80" y2="190" stroke="#0a0a0f" stroke-width="1" stroke-dasharray="4,4" opacity="0.25"/>
+      <!-- Ring -->
+      <circle cx="400" cy="190" r="150" fill="none" stroke="#0a0a0f" stroke-width="1" stroke-dasharray="2,8" opacity="0.15"/>
+    </svg>
+    <div class="ring-center">
+      <div class="ring-center-title">Orchestrator<br>+<br>Queue</div>
+      <div class="ring-center-sub">Session Brain</div>
+    </div>
+    <div class="agent-node n1" style="border-color:var(--agent-1);">
+      <div class="agent-node-icon">⚡</div>
+      <div class="agent-node-name">Analyst</div>
+      <div class="agent-node-role">Fact Extraction</div>
+      <div class="agent-node-model">GPT-4o</div>
+    </div>
+    <div class="agent-node n2" style="border-color:var(--agent-2);">
+      <div class="agent-node-icon">🔬</div>
+      <div class="agent-node-name">Researcher</div>
+      <div class="agent-node-role">Context + RAG</div>
+      <div class="agent-node-model">Claude Opus</div>
+    </div>
+    <div class="agent-node n3" style="border-color:var(--agent-3);">
+      <div class="agent-node-icon">🧠</div>
+      <div class="agent-node-name">Reasoner</div>
+      <div class="agent-node-role">Logic + Causality</div>
+      <div class="agent-node-model">Gemini 1.5</div>
+    </div>
+    <div class="agent-node n4" style="border-color:var(--agent-4);">
+      <div class="agent-node-icon">⚖️</div>
+      <div class="agent-node-name">Critic</div>
+      <div class="agent-node-role">Error Detection</div>
+      <div class="agent-node-model">Llama 3 70B</div>
+    </div>
+    <div class="agent-node n5" style="border-color:var(--agent-5);">
+      <div class="agent-node-icon">✦</div>
+      <div class="agent-node-name">Synthesizer</div>
+      <div class="agent-node-role">Final Weaving</div>
+      <div class="agent-node-model">Claude Sonnet</div>
+    </div>
+  </div>
+
+  <!-- Layer architecture -->
+  <div class="arch-section-title">System Layers</div>
+  <div class="layers">
+    <div class="layer">
+      <div class="layer-num">L1</div>
+      <div class="layer-content">
+        <div class="layer-title">Frontend — Chat Interface</div>
+        <div class="layer-detail">React/Next.js SPA. Three-panel layout: Agent roster with live status, main conversation thread with toggle between "Final Only" and "Show Deliberation" modes, real-time debate feed panel. WebSocket client streams events and renders incrementally.</div>
+        <div class="layer-tech">
+          <span class="tech-chip">React</span>
+          <span class="tech-chip">WebSocket</span>
+          <span class="tech-chip">Zustand</span>
+          <span class="tech-chip">Tailwind</span>
+        </div>
+      </div>
+      <div class="layer-icon">🖥</div>
+    </div>
+    <div class="layer">
+      <div class="layer-num">L2</div>
+      <div class="layer-content">
+        <div class="layer-title">API Gateway + Auth</div>
+        <div class="layer-detail">Handles JWT auth, rate limiting per user, request validation. Upgrades HTTP to WebSocket for persistent session. Routes to Orchestrator via internal message bus. Returns SSE or WebSocket stream back to client.</div>
+        <div class="layer-tech">
+          <span class="tech-chip">FastAPI / Node</span>
+          <span class="tech-chip">JWT</span>
+          <span class="tech-chip">Nginx</span>
+          <span class="tech-chip">Redis Rate Limit</span>
+        </div>
+      </div>
+      <div class="layer-icon">🛡</div>
+    </div>
+    <div class="layer">
+      <div class="layer-num">L3</div>
+      <div class="layer-content">
+        <div class="layer-title">Orchestrator Service</div>
+        <div class="layer-detail">Core controller. On query arrival: (1) enriches prompt with context/memory, (2) fans out parallel Task objects to each Agent Worker, (3) monitors completion via Redis pub/sub, (4) triggers Debate Engine once all Round 1 results arrive, (5) triggers Synthesizer, (6) streams final answer.</div>
+        <div class="layer-tech">
+          <span class="tech-chip">Python AsyncIO</span>
+          <span class="tech-chip">Redis PubSub</span>
+          <span class="tech-chip">Celery / ARQ</span>
+          <span class="tech-chip">State Machine</span>
+        </div>
+      </div>
+      <div class="layer-icon">🎛</div>
+    </div>
+    <div class="layer">
+      <div class="layer-num">L4</div>
+      <div class="layer-content">
+        <div class="layer-title">Agent Worker Pool</div>
+        <div class="layer-detail">Each Agent is a containerized worker with its own system prompt defining personality/role. Workers pull tasks from queue, call their assigned LLM API (OpenAI, Anthropic, Google, Groq etc.), return structured JSON: { reasoning, answer, confidence, sources }. Horizontally scalable.</div>
+        <div class="layer-tech">
+          <span class="tech-chip">Docker</span>
+          <span class="tech-chip">LLM SDKs</span>
+          <span class="tech-chip">Structured Output</span>
+          <span class="tech-chip">Retry Logic</span>
+        </div>
+      </div>
+      <div class="layer-icon">🤖</div>
+    </div>
+    <div class="layer">
+      <div class="layer-num">L5</div>
+      <div class="layer-content">
+        <div class="layer-title">Debate Engine</div>
+        <div class="layer-detail">Assembles all Round 1 outputs into a structured "debate context" prompt. Re-dispatches to each agent with instruction to read all peers' reasoning and either (a) affirm, (b) critique with reasoning, or (c) revise their answer. Critic agent has elevated weight in this round. Max 2 debate rounds to control latency.</div>
+        <div class="layer-tech">
+          <span class="tech-chip">Prompt Templates</span>
+          <span class="tech-chip">Agent Re-dispatch</span>
+          <span class="tech-chip">Voting Weights</span>
+        </div>
+      </div>
+      <div class="layer-icon">⚔️</div>
+    </div>
+    <div class="layer">
+      <div class="layer-num">L6</div>
+      <div class="layer-content">
+        <div class="layer-title">Memory + RAG Layer</div>
+        <div class="layer-detail">Vector DB stores past conversations and domain knowledge. On each query, retrieves semantically relevant past context and injects into agent prompts. User-level memory lets council "know" the user over time. Supports file/document upload for grounding.</div>
+        <div class="layer-tech">
+          <span class="tech-chip">Pinecone / Qdrant</span>
+          <span class="tech-chip">Embeddings</span>
+          <span class="tech-chip">PostgreSQL</span>
+          <span class="tech-chip">S3 Docs</span>
+        </div>
+      </div>
+      <div class="layer-icon">📚</div>
+    </div>
+    <div class="layer">
+      <div class="layer-num">L7</div>
+      <div class="layer-content">
+        <div class="layer-title">Observability + Analytics</div>
+        <div class="layer-detail">Traces every agent call, debate round, token usage, latency per agent, cost per query. Dashboard shows which agents contributed most per domain, confidence calibration over time, hallucination catch rate by Critic agent.</div>
+        <div class="layer-tech">
+          <span class="tech-chip">LangSmith / Phoenix</span>
+          <span class="tech-chip">Prometheus</span>
+          <span class="tech-chip">Grafana</span>
+          <span class="tech-chip">OpenTelemetry</span>
+        </div>
+      </div>
+      <div class="layer-icon">📊</div>
+    </div>
+  </div>
+
+  <!-- Session states -->
+  <div class="arch-section-title">Session State Machine</div>
+  <div class="states-grid">
+    <div class="state-item">
+      <div class="state-icon">📥</div>
+      <div class="state-name">RECEIVED</div>
+      <div class="state-desc">Query validated, session created, RAG context fetched</div>
+      <div class="state-time">~100ms</div>
+    </div>
+    <div class="state-item">
+      <div class="state-icon">🔀</div>
+      <div class="state-name">DISPATCHED</div>
+      <div class="state-desc">All agents receive enriched task simultaneously in parallel</div>
+      <div class="state-time">~200ms</div>
+    </div>
+    <div class="state-item">
+      <div class="state-icon">💬</div>
+      <div class="state-name">DELIBERATING</div>
+      <div class="state-desc">Round 1 complete, debate context assembled, Round 2 in progress</div>
+      <div class="state-time">~3-8s</div>
+    </div>
+    <div class="state-item">
+      <div class="state-icon">✦</div>
+      <div class="state-name">SYNTHESIZING</div>
+      <div class="state-desc">Synthesizer weaving final answer from all debate outputs</div>
+      <div class="state-time">~2-4s</div>
+    </div>
+    <div class="state-item">
+      <div class="state-icon">✅</div>
+      <div class="state-name">COMPLETE</div>
+      <div class="state-desc">Final answer streamed, session logged, memory updated</div>
+      <div class="state-time">~100ms</div>
+    </div>
+  </div>
+
+  <!-- Data contract table -->
+  <div class="arch-section-title">Agent Message Contract (JSON Schema)</div>
+  <table class="data-table">
+    <tr>
+      <th>Field</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Example</th>
+    </tr>
+    <tr>
+      <td><code>agent_id</code></td>
+      <td>string</td>
+      <td>Unique agent identifier</td>
+      <td><code>"analyst_gpt4o"</code></td>
+    </tr>
+    <tr>
+      <td><code>round</code></td>
+      <td>integer</td>
+      <td>Debate round number (1 or 2)</td>
+      <td><code>1</code></td>
+    </tr>
+    <tr>
+      <td><code>reasoning</code></td>
+      <td>string</td>
+      <td>Agent's internal chain-of-thought. Shown in debate feed.</td>
+      <td><code>"Based on Vanguard data, index funds outperform..."</code></td>
+    </tr>
+    <tr>
+      <td><code>answer</code></td>
+      <td>string</td>
+      <td>Agent's proposed answer for this round</td>
+      <td><code>"Invest 90% VTI, 10% bonds..."</code></td>
+    </tr>
+    <tr>
+      <td><code>confidence</code></td>
+      <td>float 0–1</td>
+      <td>Agent's self-assessed confidence</td>
+      <td><code>0.87</code></td>
+    </tr>
+    <tr>
+      <td><code>critique_of</code></td>
+      <td>string[]</td>
+      <td>IDs of agents this agent critiques (Round 2 only)</td>
+      <td><code>["researcher_claude"]</code></td>
+    </tr>
+    <tr>
+      <td><code>stance</code></td>
+      <td>enum</td>
+      <td>affirm | critique | revise</td>
+      <td><code>"critique"</code></td>
+    </tr>
+    <tr>
+      <td><code>sources</code></td>
+      <td>string[]</td>
+      <td>Referenced sources/documents</td>
+      <td><code>["Vanguard 2023 ETF Report"]</code></td>
+    </tr>
+    <tr>
+      <td><code>tokens_used</code></td>
+      <td>integer</td>
+      <td>Token count for billing/monitoring</td>
+      <td><code>842</code></td>
+    </tr>
+    <tr>
+      <td><code>latency_ms</code></td>
+      <td>integer</td>
+      <td>Time to complete this round's response</td>
+      <td><code>2140</code></td>
+    </tr>
+  </table>
+
+  <!-- Configuration callouts -->
+  <div class="arch-section-title">Key Design Decisions</div>
+  <div class="callout-grid">
+    <div class="callout">
+      <div class="callout-icon">⚡</div>
+      <div class="callout-title">Parallel Fan-Out,<br>Not Sequential</div>
+      <div class="callout-body">All agents run <strong>simultaneously in Round 1</strong>, not one-by-one. This keeps total latency ≈ slowest single agent rather than sum-of-all. Only the Debate round introduces sequential dependency, and it's capped at 2 iterations.</div>
+    </div>
+    <div class="callout">
+      <div class="callout-icon">⚖️</div>
+      <div class="callout-title">Weighted Voting,<br>Not Majority</div>
+      <div class="callout-body">The Synthesizer uses <strong>confidence-weighted aggregation</strong>, not simple majority vote. An agent with 0.95 confidence outweighs 3 agents at 0.5. The Critic agent gets a 1.5× multiplier on flagged errors to prevent the group from overriding valid criticism.</div>
+    </div>
+    <div class="callout">
+      <div class="callout-icon">📡</div>
+      <div class="callout-title">Real-Time Streaming,<br>Not Polling</div>
+      <div class="callout-body">The frontend receives <strong>server-sent events</strong> as they happen: agent thinking, debate posts, confidence scores, and final answer tokens stream in. Users see the council working — not a spinner. This dramatically improves perceived speed and trust.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
+<div class="sep"></div>
+<div class="footer">
+  <div class="footer-brand">AI Agent Council</div>
+  <div>System Design v1.0 · February 2026</div>
+  <div>Architecture + Frontend Blueprint</div>
+</div>
+
+</body>
+</html>
